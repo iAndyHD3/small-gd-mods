@@ -36,8 +36,10 @@ add_requires("fmt")
 
 includes("**/xmake.lua") -- recursively add files through pattern matching
 
-target("gdmod") --dll name and target name
-	set_default(true)
+
+function addTarget(name, default)
+target(name)
+	set_default(default)
 	set_kind("shared")
 	add_files("src/*.cpp")
 	add_packages("fmt")
@@ -99,6 +101,9 @@ target("gdmod") --dll name and target name
 	
 target_end() --target_end() is optional
 
+end
 
 --xmake website (recommended) https://xmake.io
 -- xmake f --import=cfg.txt
+
+addTarget("icon-profile", true)
