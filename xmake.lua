@@ -37,20 +37,27 @@ add_requires("fmt")
 includes("**/xmake.lua") -- recursively add files through pattern matching
 
 
+target("minhook")
+	set_kind("static")
+	add_includedirs("libs/minhook/include", {public = true})
+	add_files("libs/minhook/src/**.c")
+target_end()
+
 function addTarget(name, default)
 target(name)
 	set_default(default)
 	set_kind("shared")
-	add_files("src/*.cpp")
+	add_files("src/ModToolbox.cpp")
+	add_files("src/" .. name .. ".cpp")
 	add_packages("fmt")
 	add_deps("cocos-headers")
 	add_deps("mat-dash")
 	add_deps("gd.h")
 	set_rundir("/bin")
+	add_deps("minhook")
 	
 	--add minhook manually here since it doesnt seem to work when added with target
-	add_includedirs("libs/minhook/include")
-	add_files("libs/minhook/src/**.c")
+
 	
 	--this will run when xmake run gdmod is called
 	on_run(function (target)
@@ -107,3 +114,5 @@ end
 -- xmake f --import=cfg.txt
 
 addTarget("icon-profile", true)
+addTarget("level-main-menu", false)
+addTarget("known-players", true)
