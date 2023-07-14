@@ -8,13 +8,13 @@
 #include <stdio.h>
 #include "json.hpp"
 #include <random>
-
+#include <algorithm>
 #include <gd.h>
 
 using namespace gd;
 using namespace cocos2d;
 
-//#define USE_WIN32_CONSOLE
+#define USE_WIN32_CONSOLE 0
 #include "ModToolbox.hpp"
 
 #define MEMBERBYOFFSET(type, class, offset) *reinterpret_cast<type*>(reinterpret_cast<uintptr_t>(class) + offset)
@@ -30,7 +30,7 @@ constexpr const char* JSON_STRING = R"JSON(
     [ "envylol", 73, 20, 1, 1],
     [ "EVW", 28, 12, 9, 0 ],
     [ "Flub", 25, 3, 12, 1 ],
-    [ "GD Flaaroni", 62, 12, 15, 0 ],
+    [ "Flaaroni", 62, 12, 15, 0 ],
     [ "Jayuff", 22, 19, 11, 1 ],
     [ "Jeyzor", 99, 24, 25, 1 ],
     [ "Juniper", 98, 40, 12, 1 ],
@@ -70,6 +70,25 @@ constexpr const char* JSON_STRING = R"JSON(
 )JSON";
 
 static nlohmann::json cubes = nlohmann::json::parse(JSON_STRING);
+static std::vector<int> cubeOrder;
+static int cubesProduced = 0;
+
+void shuffleVector()
+{
+	static std::random_device rd;
+	std::mt19937 g(rd());
+	
+	std::shuffle(cubeOrder.begin(), cubeOrder.end(), g);
+	
+#if USE_WIN32_CONSOLE
+
+	for(const auto& i : cubeOrder)
+	{
+		printf("cubeOrder: %d\n", i);
+	}
+#endif
+}
+
 
 int randomInt(int min, int max) {
 	static std::random_device device;
@@ -91,18 +110,16 @@ void MenuGameLayer_resetPlayer(CCNode* self)
 	player->toggleRobotMode(false);
 	player->toggleSpiderMode(false);
 	
-	static int norepeat = 0;
-	int randomIcon = randomInt(0, cubes.size() - 1);
-	
-	while(norepeat == randomIcon)
-		randomIcon = randomInt(0, cubes.size() - 1);
-	
-	norepeat = randomIcon;
-	
-//	printf("icon chosen: %d\n", randomIcon);
-	
-	try //nlohmann json will throw
+	if(cubesProduced > cubeOrder.size() - 1)
 	{
+		cubesProduced = 0;
+		shuffleVector();
+	}
+	try //.at() and nlohman exceptions
+	{
+		int randomIcon = cubeOrder.at(cubesProduced);
+		printf("icon chosen %d, cubesProduced: %d\n", randomIcon, cubesProduced);
+
 		int iconID = cubes[randomIcon][1].template get<int>();
 		player->updatePlayerFrame(iconID);
 	
@@ -122,33 +139,51 @@ void MenuGameLayer_resetPlayer(CCNode* self)
 			player->m_iconSpriteWhitener->setVisible(true); //gd.h wrong offset
 		}
 		else
+		{
 			player->m_iconSpriteWhitener->setVisible(false);
+		}
 		
-		//printf("glow: %d\n", glow);
-	
-	} catch(nlohmann::json::exception& e) {
+	}
+	catch(std::exception& e)
+	{
 		printf("something happened %s\n", e.what()); //leave in release
 	}
 	
+	cubesProduced++;
 }
 
 bool MenuGameLayer_init(CCNode* self)
 {
 	if(!matdash::orig<&MenuGameLayer_init>(self)) return false;
+	
+	cubeOrder.reserve(cubes.size());
+	cubeOrder.clear();
+	
+	for(int i = 0; i < cubes.size(); i++)
+	{
+		cubeOrder.push_back(i);
+	}
+	cubesProduced = 0;
+	
+	shuffleVector();
+	
 	MenuGameLayer_resetPlayer(self);
+	
 	return true;
 }
 
 
 void mod_main(HMODULE) {
-	
-	//if(AllocConsole()) {
-	//	freopen("CONOUT$", "wt", stdout);
-	//	freopen("CONIN$", "rt", stdin);
-	//	freopen("CONOUT$", "w", stderr);
-	//	std::ios::sync_with_stdio(1);
-	//}
 
+#if USE_WIN32_CONSOLE
+	if(AllocConsole()) {
+		freopen("CONOUT$", "wt", stdout);
+		freopen("CONIN$", "rt", stdin);
+		freopen("CONOUT$", "w", stderr);
+		std::ios::sync_with_stdio(1);
+	}
+#endif
+	
 	matdash::add_hook<&MenuGameLayer_resetPlayer>(base + 0x18f4b0);
 	matdash::add_hook<&MenuGameLayer_init>(base + 0x18e770);
 }

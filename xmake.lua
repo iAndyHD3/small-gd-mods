@@ -113,6 +113,6 @@ end
 --xmake website (recommended) https://xmake.io
 -- xmake f --import=cfg.txt
 
-addTarget("icon-profile", true)
+addTarget("icon-profile", false)
 addTarget("level-main-menu", false)
 addTarget("known-players", true)
